@@ -1,0 +1,4 @@
+
+location         = "japaneast"
+resource_prefix  = "example"
+vm_admin_ssh_key = "~/.ssh/id_rsa.pub"
