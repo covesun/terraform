@@ -3,7 +3,7 @@
 *.tfstate.backup
 .terraform/
 *.log
-.tfbackend
+*.tfbackend
 
 # Secrets / Local config
 *.env
