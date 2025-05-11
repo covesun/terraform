@@ -1,0 +1,11 @@
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+*.log
+
+# Secrets / Local config
+*.env
+*.pem
+*.key
+terraform.tfvars

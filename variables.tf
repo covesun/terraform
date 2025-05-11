@@ -1,3 +1,8 @@
+variable "subscription_id" {
+  description = "サブスクリプションID"
+  type        = string
+  default     = ""
+}
 
 variable "location" {
   description = "Azure リージョン名"
@@ -7,12 +12,6 @@ variable "location" {
 
 variable "resource_prefix" {
   description = "リソース名に付与するプレフィックス"
-  type        = string
-  default     = "example"
-}
-
-variable "resource_group_name" {
-  description =  "リソースグループ名"
   type        = string
   default     = "example"
 }
