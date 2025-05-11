@@ -21,3 +21,19 @@ variable "vm_admin_ssh_key" {
   type        = string
   default     = "~/.ssh/id_rsa.pub"
 }
+
+variable "storage_account_name" {
+  description = "バックエンド用ストレージアカウント"
+  type        = string
+  default     = "st"
+}
+variable "container_name" {
+  description = "バックエンド用コンテナ名"
+  type        = string
+  default     = "tfstate"
+}
+variable "key" {
+  description = "ステートファイル名"
+  type        = string
+  default     = "test.tfstate"
+}
