@@ -3,6 +3,7 @@
 *.tfstate.backup
 .terraform/
 *.log
+.tfbackend
 
 # Secrets / Local config
 *.env
@@ -10,4 +11,4 @@
 *.key
 terraform.tfvars
 
-.DS_Store
+.DS_Store:
