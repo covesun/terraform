@@ -9,3 +9,5 @@
 *.pem
 *.key
 terraform.tfvars
+
+.DS_Store
