@@ -21,7 +21,3 @@ variable "vm_admin_ssh_key" {
   type        = string
   default     = "~/.ssh/id_rsa.pub"
 }
-
-variable "vpn_client_root_cert_pem" {
-  default     = "<your-root-cert-pem>"
-}

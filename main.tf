@@ -19,5 +19,4 @@ provider "azurerm" {
 
 module "pgadmin_test" {
   source = "./pgadmin_test"
-  vpn_client_root_cert_pem = var.vpn_client_root_cert_pem
 }
