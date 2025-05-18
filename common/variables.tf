@@ -11,12 +11,6 @@ variable "resource_prefix" {
   default     = "example"
 }
 
-variable "resource_group_name" {
-  description =  "リソースグループ名"
-  type        = string
-  default     = "example"
-}
-
 variable "vm_admin_ssh_key" {
   description = "VM用SSH公開鍵ファイルのパス"
   type        = string
