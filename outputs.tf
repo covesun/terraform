@@ -1,8 +1,8 @@
 
-output "vnet_name" {
-  value = module.common.vnet_name
-}
+#output "vnet_name" {
+#  value = module.common.vnet_name
+#}
 
-output "subnet_id" {
-  value = module.common.subnet_id
-}
+#output "subnet_id" {
+#  value = module.common.subnet_id
+#}
