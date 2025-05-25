@@ -9,14 +9,6 @@ variable "location" {
   default = "japaneast"
 }
 
-variable "vnet_name" {
-  default = "vnet-pgadmin"
-}
-
-variable "subnet_name" {
-  default = "snet-containerapps"
-}
-
 variable "pgadmin_admin_email" {
   default = "admin@pgadmin.com"
 }
@@ -46,18 +38,55 @@ resource "azurerm_resource_group" "rg" {
   location = var.location
 }
 
-resource "azurerm_virtual_network" "vnet" {
-  name                = var.vnet_name
+#################### Vnet ####################
+resource "azurerm_virtual_network" "vnet-frontend" {
+  name                = "vnet-frontend"
   address_space       = ["10.0.0.0/16"]
   location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
 }
 
-resource "azurerm_subnet" "subnet_containerapps" {
-  name                 = var.subnet_name
+resource "azurerm_virtual_network" "vnet-management" {
+  name                = "vnet-management"
+  address_space       = ["10.1.0.0/16"]
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_virtual_network" "vnet-database" {
+  name                = "vnet-database"
+  address_space       = ["10.2.0.0/16"]
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_virtual_network" "vnet-functions" {
+  name                = "vnet-functions"
+  address_space       = ["10.3.0.0/16"]
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_virtual_network" "vnet-container" {
+  name                = "vnet-container"
+  address_space       = ["10.4.0.0/16"]
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+#################### Subnet ####################
+resource "azurerm_subnet" "snet-gateway" {
+  name                 = "GatewaySubnet"
   resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"]
+  virtual_network_name = azurerm_virtual_network.vnet-management.name
+  address_prefixes     = ["10.1.255.0/27"]
+}
+
+resource "azurerm_subnet" "snet-pgadmin" {
+  name                 = "snet-pgadmin"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet-management.name
+  address_prefixes     = ["10.1.1.0/24"]
 
   delegation {
     name = "delegation"
@@ -68,11 +97,11 @@ resource "azurerm_subnet" "subnet_containerapps" {
   }
 }
 
-resource "azurerm_subnet" "subnet_postgres" {
+resource "azurerm_subnet" "snet-postgres" {
   name                 = "snet-postgres"
   resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.2.0/24"]
+  virtual_network_name = azurerm_virtual_network.vnet-database.name
+  address_prefixes     = ["10.2.0.0/24"]
 
   delegation {
     name = "delegation"
@@ -83,14 +112,8 @@ resource "azurerm_subnet" "subnet_postgres" {
   }
 }
 
-resource "azurerm_subnet" "subnet_gateway" {
-  name                 = "GatewaySubnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.255.0/27"]
-}
-
-resource "azurerm_public_ip" "vpn_pip" {
+#################### Private IP ####################
+resource "azurerm_public_ip" "pip-vpn" {
   name                = "pip-vpn"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -98,7 +121,8 @@ resource "azurerm_public_ip" "vpn_pip" {
   sku                 = "Basic"
 }
 
-resource "azurerm_virtual_network_gateway" "vpn_gw" {
+#################### VGW ####################
+resource "azurerm_virtual_network_gateway" "vpngw-pgadmin" {
   name                = "vpngw-pgadmin"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -109,9 +133,9 @@ resource "azurerm_virtual_network_gateway" "vpn_gw" {
 
   ip_configuration {
     name                          = "vnetGatewayConfig"
-    public_ip_address_id          = azurerm_public_ip.vpn_pip.id
+    public_ip_address_id          = azurerm_public_ip.pip-vpn.id
     private_ip_address_allocation = "Dynamic"
-    subnet_id                     = azurerm_subnet.subnet_gateway.id
+    subnet_id                     = azurerm_subnet.snet-gateway.id
   }
 
   sku                 = "Basic"
@@ -138,45 +162,63 @@ resource "azurerm_virtual_network_gateway" "vpn_gw" {
 
 # あと必要なのは DNS (private.postgres.database.azure.com) の Private DNS Zone と link やな
 
-resource "azurerm_private_dns_zone" "postgres_dns" {
+#################### Private DNS Zone ####################
+resource "azurerm_private_dns_zone" "pdz-postgres" {
   name                = "private.postgres.database.azure.com"
   resource_group_name = azurerm_resource_group.rg.name
 }
 
-resource "azurerm_private_dns_zone_virtual_network_link" "dns_link" {
+resource "azurerm_private_dns_zone" "pdz-pgadmin" {
+  name                = "private.postgres.database.azure.com"
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "dl-postgres" {
   name                  = "dnslink-postgres"
   resource_group_name   = azurerm_resource_group.rg.name
-  private_dns_zone_name = azurerm_private_dns_zone.postgres_dns.name
-  virtual_network_id    = azurerm_virtual_network.vnet.id
+  private_dns_zone_name = azurerm_private_dns_zone.pdz-postgres.name
+  virtual_network_id    = azurerm_virtual_network.vnet-frontend.id
   registration_enabled  = false
 }
 
-resource "azurerm_postgresql_flexible_server" "postgres" {
-  name                   = "pgflexserver"
+resource "azurerm_private_dns_zone_virtual_network_link" "dl-pgadmin" {
+  name                  = "dnslink-pgadmin"
+  resource_group_name   = azurerm_resource_group.rg.name
+  private_dns_zone_name = azurerm_private_dns_zone.pdz-pgadmin.name
+  virtual_network_id    = azurerm_virtual_network.vnet-frontend.id
+  registration_enabled  = false
+}
+
+#################### Database for PostgreSQL Flexiable Server ####################
+resource "azurerm_postgresql_flexible_server" "psql-test" {
+  name                   = "psql-test"
   resource_group_name    = azurerm_resource_group.rg.name
   location               = var.location
   version                = "13"
   administrator_login    = var.postgres_admin_username
   administrator_password = var.postgres_admin_password
   storage_mb             = 32768
-  sku_name               = "B1ms"
-  delegated_subnet_id    = azurerm_subnet.subnet_postgres.id
-  private_dns_zone_id    = azurerm_private_dns_zone.postgres_dns.id
+  sku_name               = "B_Standard_B1ms"
+  delegated_subnet_id    = azurerm_subnet.snet-postgres.id
+  private_dns_zone_id    = azurerm_private_dns_zone.pdz-postgres.id
   zone                   = "1"
 }
 
-resource "azurerm_container_app_environment" "env" {
-  name                       = "pgadmin-env"
+#################### Container Apps Environment ####################
+resource "azurerm_container_app_environment" "cae-pgadmin" {
+  name                       = "cae-pgadmin"
   location                   = var.location
   resource_group_name        = azurerm_resource_group.rg.name
-  infrastructure_subnet_id   = azurerm_subnet.subnet_containerapps.id
+  infrastructure_subnet_id   = azurerm_subnet.snet-pgadmin.id
 }
 
-resource "azurerm_container_app" "pgadmin" {
-  name                         = "pgadmin"
-  container_app_environment_id = azurerm_container_app_environment.env.id
+#################### Container Apps ####################
+resource "azurerm_container_app" "ca-pgadmin" {
+  name                         = "ca-pgadmin"
+  container_app_environment_id = azurerm_container_app_environment.cae-pgadmin.id
   resource_group_name          = azurerm_resource_group.rg.name
-  location                     = var.location
+  #location                     = var.location
+  revision_mode               = "Single"
 
   template {
     container {
@@ -198,6 +240,10 @@ resource "azurerm_container_app" "pgadmin" {
   ingress {
     external_enabled = false
     target_port      = 80
+    traffic_weight {
+      latest_revision = true
+      percentage = 100
+    }
   }
 
   identity {
