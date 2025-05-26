@@ -49,7 +49,7 @@ resource "azurerm_storage_account" "func" {
   }
 }
 
-resource "azurerm_app_service_plan" "func" {
+resource "azurerm_service_plan" "func" {
   name                = "asp-func-flex"
   location            = azurerm_resource_group.func.location
   resource_group_name = azurerm_resource_group.func.name
