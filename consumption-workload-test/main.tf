@@ -18,12 +18,11 @@ resource "azurerm_virtual_network" "vnet" {
   resource_group_name = azurerm_resource_group.ca.name
 }
 
-# Container Apps Environment用サブネット（/21以上必須！）
 resource "azurerm_subnet" "cae" {
   name                 = "snet-ca-env"
   resource_group_name  = azurerm_resource_group.ca.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.10.1.0/21"] # /21以上必要
+  address_prefixes     = ["10.10.1.0/21"]
   delegation {
     name = "delegation"
     service_delegation {
@@ -33,7 +32,6 @@ resource "azurerm_subnet" "cae" {
   }
 }
 
-# Private Endpoint用サブネット（推奨分離）
 resource "azurerm_subnet" "pe" {
   name                 = "snet-ca-pe"
   resource_group_name  = azurerm_resource_group.ca.name
@@ -48,23 +46,30 @@ resource "azurerm_subnet" "pe" {
   }
 }
 
-# Container Apps Environment（VNet統合＋Private Ingress）
 resource "azurerm_container_app_environment" "cae" {
   name                            = "ca-env-demo"
   location                        = azurerm_resource_group.ca.location
   resource_group_name             = azurerm_resource_group.ca.name
   infrastructure_subnet_id        = azurerm_subnet.cae.id
-  internal_load_balancer_enabled  = true # Private Ingress（VNet内のみ）
+  internal_load_balancer_enabled  = true # Private Ingress
   zone_redundant                  = true
+
+  workload_profile {
+    name                  = "consumption"
+    workload_profile_type = "Consumption"
+    min_count             = 0
+    max_count             = 10
+  }
 }
 
-# 通常のコンテナApp（nginx例。private ingressなのでVNet内からのみアクセス可）
 resource "azurerm_container_app" "nginx" {
   name                         = "ca-demo-nginx"
   container_app_environment_id = azurerm_container_app_environment.cae.id
   resource_group_name          = azurerm_resource_group.ca.name
   location                     = azurerm_resource_group.ca.location
   revision_mode                = "Single"
+
+  workload_profile_name        = "consumption" # ←ココが「従量課金ワークロード」指定
 
   template {
     container {
@@ -95,9 +100,46 @@ resource "azurerm_container_app" "nginx" {
   }
 }
 
-# Container App（Functionイメージ版も同様に作成可）
+# Functionランタイム・Python版も同様に↓
+resource "azurerm_container_app" "func" {
+  name                         = "ca-demo-func"
+  container_app_environment_id = azurerm_container_app_environment.cae.id
+  resource_group_name          = azurerm_resource_group.ca.name
+  location                     = azurerm_resource_group.ca.location
+  revision_mode                = "Single"
 
-# Private Endpoint（App Environment対象）
+  workload_profile_name        = "consumption"
+
+  template {
+    container {
+      name   = "func-python"
+      image  = "mcr.microsoft.com/azure-functions/python:4-python3.11"
+      cpu    = 0.25
+      memory = "0.5Gi"
+    }
+    scale {
+      min_replicas = 0
+      max_replicas = 3
+      rules {
+        name = "http-rule"
+        custom {
+          type = "http"
+          metadata = {
+            concurrentRequests = "50"
+          }
+        }
+      }
+    }
+  }
+
+  ingress {
+    external_enabled = true
+    target_port      = 80
+    transport        = "auto"
+  }
+}
+
+# Private Endpoint（CAE環境対象）
 resource "azurerm_private_endpoint" "cae_pe" {
   name                = "pe-ca-env"
   location            = azurerm_resource_group.ca.location
@@ -107,12 +149,11 @@ resource "azurerm_private_endpoint" "cae_pe" {
   private_service_connection {
     name                           = "psc-ca-env"
     private_connection_resource_id  = azurerm_container_app_environment.cae.id
-    subresource_names              = ["environment"] # 固定
+    subresource_names              = ["environment"]
     is_manual_connection           = false
   }
 }
 
-# Private DNSゾーン（privatelink.azurecontainerapps.io）
 resource "azurerm_private_dns_zone" "ca" {
   name                = "privatelink.azurecontainerapps.io"
   resource_group_name = azurerm_resource_group.ca.name
