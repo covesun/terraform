@@ -1,0 +1,56 @@
+# 1. ログオン時刻の取得
+$logonEvent = Get-WinEvent -FilterHashtable @{
+    LogName = 'Security';
+    Id = 4624;
+    StartTime = (Get-Date).Date
+} | Where-Object {
+    $_.Properties[8].Value -eq '10' # Interactive logon
+} | Select-Object -First 1
+
+$logonTime = if ($logonEvent) {
+    $logonEvent.TimeCreated.ToString("HH:mm")
+} else {
+    "取得失敗"
+}
+
+# 2. Outlook予定の取得（当日の予定を抜粋）
+$outlook = New-Object -ComObject Outlook.Application
+$namespace = $outlook.GetNamespace("MAPI")
+$calendar = $namespace.GetDefaultFolder(9) # 9 = olFolderCalendar
+$today = Get-Date
+$tomorrow = $today.AddDays(1)
+
+$appointments = $calendar.Items
+$appointments.Sort("[Start]")
+$appointments.IncludeRecurrences = $true
+$todayItems = $appointments.Restrict("[Start] >= '$($today.ToString("g"))' AND [Start] < '$($tomorrow.ToString("g"))'")
+
+$formattedAppointments = ""
+foreach ($item in $todayItems) {
+    $start = $item.Start.ToString("HH:mm")
+    $end = $item.End.ToString("HH:mm")
+    $subject = $item.Subject
+    $formattedAppointments += "・$start～$end　$subject`r`n"
+}
+
+# 3. メール本文を作成
+$body = @"
+お疲れ様です。
+
+【始業時刻】
+$logonTime
+
+【本日の予定】
+$formattedAppointments
+
+よろしくお願いいたします。
+"@
+
+# 4. 下書きメールを作成
+$mail = $outlook.CreateItem(0) # 0 = olMailItem
+$mail.Subject = "【始業連絡】本日の予定"
+$mail.To = "上司のメールアドレス@yourdomain.com"  # ←変更してな
+$mail.Body = $body
+$mail.Save()  # ←送信したい場合は .Send() に変更
+
+Write-Output "✅ メール下書きを作成しました。"
