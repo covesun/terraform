@@ -52,13 +52,13 @@ resource "azurerm_container_app_environment" "cae" {
   resource_group_name             = azurerm_resource_group.ca.name
   infrastructure_subnet_id        = azurerm_subnet.cae.id
   internal_load_balancer_enabled  = true # Private Ingress
-  zone_redundant                  = true
+  zone_redundancy_enabled         = true
 
   workload_profile {
     name                  = "consumption"
     workload_profile_type = "Consumption"
-    min_count             = 0
-    max_count             = 10
+    minimum_count         = 0
+    maximum_count         = 10
   }
 }
 
@@ -78,18 +78,11 @@ resource "azurerm_container_app" "nginx" {
       cpu    = 0.25
       memory = "0.5Gi"
     }
-    scale {
-      min_replicas = 0
-      max_replicas = 3
-      rules {
-        name = "http-rule"
-        custom {
-          type = "http"
-          metadata = {
-            concurrentRequests = "50"
-          }
-        }
-      }
+    min_replicas = 0
+    max_replicas = 3
+    http_scale_rule {
+      name = "http-rule"
+      concurrent_requests = 50
     }
   }
 
@@ -97,6 +90,9 @@ resource "azurerm_container_app" "nginx" {
     external_enabled = true
     target_port      = 80
     transport        = "auto"
+    traffic_weight {
+      percentage = 100
+    }
   }
 }
 
@@ -117,18 +113,11 @@ resource "azurerm_container_app" "func" {
       cpu    = 0.25
       memory = "0.5Gi"
     }
-    scale {
-      min_replicas = 0
-      max_replicas = 3
-      rules {
-        name = "http-rule"
-        custom {
-          type = "http"
-          metadata = {
-            concurrentRequests = "50"
-          }
-        }
-      }
+    min_replicas = 0
+    max_replicas = 3
+    http_scale_rule {
+      name = "http-rule"
+      concurrent_requests = 50
     }
   }
 
@@ -136,6 +125,9 @@ resource "azurerm_container_app" "func" {
     external_enabled = true
     target_port      = 80
     transport        = "auto"
+    traffic_weight {
+      percentage = 100
+    }
   }
 }
 
