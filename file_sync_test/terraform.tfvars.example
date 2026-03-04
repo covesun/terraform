@@ -1,0 +1,21 @@
+subscription_id = "<YOUR_AZURE_SUBSCRIPTION_ID>"
+
+# 必要なら変更
+location                   = "japaneast"
+vm_size                    = "Standard_B2s"
+data_disk_size_gb          = 128
+file_share_name            = "shared"
+admin_username             = "azureuser"
+key_vault_name_prefix      = "kvfilesync"
+admin_password_secret_name = "filesync-vm-admin-password"
+password_rotation_token    = "initial"
+server_endpoint_local_path = "F:\\AFSData"
+
+# Azure File Sync Agent MSI URL (公式の最新版ダウンロードURLを指定)
+afs_agent_download_url = "<AFS_AGENT_MSI_URL>"
+
+# 2回目 apply で設定: 登録済みサーバーID
+# registered_server_ids = {
+#   vm1 = "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.StorageSync/storageSyncServices/<svc>/registeredServers/<id1>"
+#   vm2 = "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.StorageSync/storageSyncServices/<svc>/registeredServers/<id2>"
+# }
