@@ -1,0 +1,15 @@
+# このファイルを terraform.tfvars にコピーして値を埋めてください
+# cp terraform.tfvars.example terraform.tfvars
+
+subscription_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+tenant_id       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # az account show --query tenantId -o tsv
+
+# Storage Explorer でアクセスするユーザー/グループの Object ID
+# az ad signed-in-user show --query id -o tsv
+blob_reader_object_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+location = "japaneast"
+prefix   = "vpnpe"
+
+# VPN クライアントに割り当てる IP 帯 (既存 VNet と重複しないこと)
+vpn_client_address_pool = "172.16.0.0/24"
