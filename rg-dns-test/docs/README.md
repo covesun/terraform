@@ -111,3 +111,10 @@ rg-dns-test/
 | Azure Firewall | afw-vnet2-test-jpe | Basic SKU |
 | DNS Private Resolver | dnspr-test-jpe | vnet2 に配置 |
 | Container App Env | cae-test-jpe | vnet3 に配置 |
+
+---
+
+## 参考リソース
+
+- [Azure DNS Private Resolver アーキテクチャ](https://learn.microsoft.com/ja-jp/azure/dns/private-resolver-architecture)
+- [Azure ネットワーク 第3回 Azure Firewall 編 - QES](https://www.qes.co.jp/media/azure/a99)
