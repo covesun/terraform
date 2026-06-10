@@ -1,0 +1,6 @@
+*.tfvars
+*.tfstate
+*.tfstate.backup
+vpn-certs/
+.terraform/
+.terraform.lock.hcl
